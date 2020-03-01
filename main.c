@@ -39,13 +39,27 @@ Sint16 GetSequenceSpeed(char* BankFilename, Uint8 bank_id, Uint8 sequence_id)
 	}
 	if (BankFilename == "MYSTICRUIN.MLT")
 	{
+		if (bank_id == 1 && sequence_id == 0) return 0;
 		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "SKYDECK.MLT")
+	{
+		if (bank_id == 1 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "SKYDECK_E.MLT")
+	{
+		if (bank_id == 1 && sequence_id == 0) return 0;
 	}
 	if (BankFilename == "EGGCARRIER.MLT")
 	{
 		if (bank_id == 1 && sequence_id == 0) return 0;
 		if (bank_id == 1 && sequence_id == 1) return 0;
 		if (bank_id == 1 && sequence_id == 21) return 0;
+	}
+	if (BankFilename == "TWINKLEPARK.MLT")
+	{
+		if (bank_id == 1 && sequence_id == 0) return 0;
+		if (bank_id == 1 && sequence_id == 1) return 0;
 	}
 	if (BankFilename == "XMAS98.MLT") return 0;
 	if (BankFilename == "KADOMATSU.MLT") return 0;
