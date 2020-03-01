@@ -714,7 +714,7 @@ void main(void)
   /* Initialize System */
   njSetBorderColor( 0x00000000 );
 
-  sbInitSystem( NJD_RESOLUTION_320x240_NTSCNI, NJD_FRAMEBUFFER_MODE_RGB565, 1 );
+  sbInitSystem(NJD_RESOLUTION_VGA, NJD_FRAMEBUFFER_MODE_RGB565, 1);
 
   njInitVertexBuffer( 20000, 0, 20000, 0, 0 );
   njInitPrint( NULL, 0, NJD_TEXFMT_ARGB_1555 );
@@ -727,6 +727,7 @@ void main(void)
   while ( 1 ) {
     pad = pdGetPeripheral( PDD_PORT_A0 );
 	njPrintColor(0xCCC0C0C0);
+	njPrintSize(16);
 	njPrintC(NJM_LOCATION(11, 2), "-- Sequence Test --");
 	//njPrintC(NJM_LOCATION(2, 21), "START   : Play/Stop sequence");
 	//njPrintC(NJM_LOCATION(2, 22), "PAD U/D : Move cursor");
