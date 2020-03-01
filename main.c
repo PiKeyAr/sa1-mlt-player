@@ -157,6 +157,8 @@ Sint8 GetEffectValue(char* BankFilename, Uint8 bank_id, Uint8 sequence_id)
 void SoundMain(const PDS_PERIPHERAL* pad)
 {
 	SDS_MIDI_MES midi_mes;
+	static int framecounter = 0;
+	static bool filechanged = false;
 	static bool play = false;
 	static bool pad_pressed = false;
 	static bool autoplay = true;
@@ -369,15 +371,62 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		selection--;
 		if (selection < 0) selection = 10;
 	}
+	//Switch between types of banks
+	if (pad->on & PDD_DGT_TX && selection == 0)
+	{
+		if (!filechanged && fileID >= 0 && fileID <= 28)
+		{
+			fileID = 29;
+			filechanged = true;
+		}
+		if (!filechanged && fileID >= 29 && fileID <= 47)
+		{
+			fileID = 48;
+			filechanged = true;
+		}
+		if (!filechanged && fileID >= 48 && fileID <= 98)
+		{
+			fileID = 99;
+			filechanged = true;
+		}
+		if (!filechanged && fileID >= 99)
+		{
+			fileID = 0;
+			filechanged = true;
+		}
+	}
+	if (pad->on & PDD_DGT_TY)
+	{
+		if (!filechanged && fileID >= 0 && fileID <= 28)
+		{
+			fileID = 99;
+			filechanged = true;
+		}
+		if (!filechanged && fileID >= 29 && fileID <= 47)
+		{
+			fileID = 0;
+			filechanged = true;
+		}
+		if (!filechanged && fileID >= 48 && fileID <= 98)
+		{
+			fileID = 29;
+			filechanged = true;
+		}
+		if (!filechanged && fileID >= 99)
+		{
+			fileID = 48;
+			filechanged = true;
+		}
+	}
 	//Decrease values 
-	if (pad->press & PDD_DGT_KL || pad->on & PDD_DGT_TB)
+	if (pad->press & PDD_DGT_KL || (pad->on & PDD_DGT_TB && framecounter % 8 == 0))
 	{
 		//File
 		if (selection == 0)
 		{
 			fileID--;
 			if (fileID > numnames) fileID = numnames;
-			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
+			filechanged = true;
 		}
 		//Bank ID
 		if (selection == 1)
@@ -444,14 +493,14 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		}
 	}
 	//Increase values 
-	if (pad->press & PDD_DGT_KR || pad->on & PDD_DGT_TA)
+	if (pad->press & PDD_DGT_KR || (pad->on & PDD_DGT_TA && framecounter % 8 == 0))
 	{
 		//File
 		if (selection == 0)
 		{
 			fileID++;
 			if (fileID > numnames) fileID = 0;
-			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
+			filechanged = true;
 		}
 		//Bank ID
 		if (selection == 1)
@@ -523,9 +572,14 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 	if (pad->on & PDD_DGT_TL || pad->on & PDD_DGT_TR)
 	{
 		//File
-		if (selection == 0)
+		if (selection == 0 && (pad->on & PDD_DGT_TL))
 		{
 			fileID = 0;
+			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
+		}
+		if (selection == 0 && (pad->on & PDD_DGT_TR))
+		{
+			fileID = numnames;
 			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
 		}
 		//Bank ID
@@ -553,7 +607,11 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 			sdSndSetFxOut(1);
 		}
 		//Effect level
-		if (selection == 5)
+		if (selection == 5 && (pad->on & PDD_DGT_TL))
+		{
+			fxLevel = -48;
+		}
+		if (selection == 5 && (pad->on & PDD_DGT_TR))
 		{
 			fxLevel = 0;
 		}
@@ -574,7 +632,12 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 			sdMidiSetPitch(midi_handle, pitch, 0);
 		}
 		//Speed level
-		if (selection == 9)
+		if (selection == 9 && (pad->on & PDD_DGT_TL))
+		{
+			speed = -4000;
+			sdMidiSetSpeed(midi_handle, speed, 0);
+		}
+		if (selection == 9 && (pad->on & PDD_DGT_TR))
 		{
 			speed = 0;
 			sdMidiSetSpeed(midi_handle, speed, 0);
@@ -586,6 +649,17 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 			play = false;
 		}
 	}
+	//Load MLT file after releasing the buttons
+	if (filechanged == true)
+	{
+		if (!(pad->press & PDD_DGT_KR || pad->on & PDD_DGT_TA) && !(pad->press & PDD_DGT_KL || pad->on & PDD_DGT_TB) && !(pad->press & PDD_DGT_KR || pad->on & PDD_DGT_TA))
+		{
+			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
+			filechanged=false;
+		}
+	}
+	framecounter++;
+	if (framecounter > 6000) framecounter = 0;
 	njPrintColor(0xCC30F030);
 	njPrintC(NJM_LOCATION(1, 5 + selection), ">");
 	njPrintColor(0xCCC0C0C0);
