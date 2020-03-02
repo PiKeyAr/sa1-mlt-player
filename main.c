@@ -452,7 +452,9 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 			status = 1;
 			playbacktimer = 0;
 			playmode = 0;
-			if (bankID == 5) timer2 = 1800; else timer2 = 600;
+			if (bankID == 5) timer2 = 1800; 
+			else if (bankID == 6 && fileID >= 48) timer2 = 1800;
+			else timer2 = 600;
 		}
 		else
 		{
