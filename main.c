@@ -1,28 +1,41 @@
-/*
-      Sequance play Test
-*/
-
-/*                 */
-/* Include headers */
-/*                 */
 #include <shinobi.h>
 #include "sndutls.h"
 
-/*                   */
-/* Declare Prototype */
-/*                   */
-void UserVBlankIn( void );
-void SoundInit( void );
-void SoundMain(const PDS_PERIPHERAL * );
-void setpan( Sint8 *, Sint8 );
-void main( void );
+void UserVBlankIn(void);
+void SoundMain(const PDS_PERIPHERAL *);
+void setpan(Sint8 *, Sint8);
+void main(void);
 
-/*                 */
-/* Function Define */
-/*                 */
-void UserVBlankIn() {
+void UserVBlankIn() 
+{
   /* Call Sound Server */
   sdSysServer();
+}
+
+void LoadMLTFile(const char* MltName) 
+{
+	SDMEMBLK       mem_blk;
+	GDFS           fd;
+	char* mlt;
+	Sint32         mlt_size;
+	Uint32         size;
+	sdMemBlkCreate(&mem_blk);
+	{
+		if ((fd = gdFsOpen(MltName, NULL)) != NULL) {
+			{
+				gdFsGetFileSize(fd, &mlt_size);
+				size = AttachSector(mlt_size);
+				mlt = (char*)syMalloc(size * sizeof(char));
+				gdFsRead(fd, size / GDD_FS_SCTSIZE, mlt);
+				sdMemBlkSetPrm(mem_blk, mlt, mlt_size, SDD_MEMBLK_SYNC_FUNC, NULL);
+				sdMultiUnitDownload(mem_blk);
+			}
+			gdFsClose(fd);
+		}
+		else PrgStop();
+	}
+	sdMemBlkDestroy(mem_blk);
+	syFree(mlt);
 }
 
 Sint16 GetSequenceSpeed(char* BankFilename, Uint8 bank_id, Uint8 sequence_id)
@@ -55,6 +68,39 @@ Sint16 GetSequenceSpeed(char* BankFilename, Uint8 bank_id, Uint8 sequence_id)
 		if (bank_id == 1 && sequence_id == 0) return 0;
 		if (bank_id == 1 && sequence_id == 1) return 0;
 		if (bank_id == 1 && sequence_id == 21) return 0;
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "E101.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "E101R.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "MOBILE1.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "MOBILE2.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "MOBILE3.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "SKYDECK.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "SKYDECK_E.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
+	}
+	if (BankFilename == "SHOOTING.MLT")
+	{
+		if (bank_id == 5 && sequence_id == 0) return 0;
 	}
 	if (BankFilename == "TWINKLEPARK.MLT")
 	{
@@ -63,6 +109,30 @@ Sint16 GetSequenceSpeed(char* BankFilename, Uint8 bank_id, Uint8 sequence_id)
 	}
 	if (BankFilename == "XMAS98.MLT") return 0;
 	if (BankFilename == "KADOMATSU.MLT") return 0;
+	if (BankFilename == "E_0001.MLT")
+	{
+		if (bank_id == 6 && sequence_id == 8) return 0;
+	}
+	if (BankFilename == "E_000D.MLT")
+	{
+		if (bank_id == 6 && sequence_id == 14) return 0;
+	}
+	if (BankFilename == "E_001E.MLT")
+	{
+		if (bank_id == 6 && sequence_id == 8) return 0;
+	}
+	if (BankFilename == "E_00BF.MLT")
+	{
+		if (bank_id == 6 && sequence_id == 8) return 0;
+	}
+	if (BankFilename == "E_00C5.MLT")
+	{
+		if (bank_id == 6 && sequence_id == 8) return 0;
+	}
+	if (BankFilename == "E_00D4.MLT")
+	{
+		if (bank_id == 6 && sequence_id == 0) return 0;
+	}
 	return -4000;
 }
 
@@ -172,7 +242,9 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 {
 	SDS_MIDI_MES midi_mes;
 	static int framecounter = 0;
-	static bool filechanged = false;
+	static bool reload = false;
+	static int filechanged = 0;
+	static int filesleft = 0;
 	static bool play = false;
 	static bool pad_pressed = false;
 	static bool autoplay = true;
@@ -331,6 +403,24 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		"CASINO_SONICTAILSVOICE_E.MLT",
 	};
 	numnames = 131; //Actual number minus 1
+	//Set the number of files left for autoplay
+	if (autoplay)
+	{
+		if (fileID <= 28 && (bankID == 1 || bankID == 4 || bankID == 5)) filesleft = 29 - fileID;
+		else if (fileID <= 33 && bankID == 3) filesleft = 34 - fileID;
+		else if (fileID <= 43 && bankID == 6) filesleft = 44 - fileID;
+		else if (fileID <= 98 && bankID == 6) filesleft = 99 - fileID;
+		else if (bankID == 0 || bankID == 2 || bankID == 7 || bankID == 8) filesleft = 1;
+		else filesleft = 0;
+	}
+	//Reload file
+	if (reload == true)
+	{
+		status = 0;
+		LoadMLTFile(FilenameArray[fileID]);
+		reload = false;
+	}
+	//Start playing
 	if (pad->press & PDD_DGT_ST)
 	{
 		play = true;
@@ -362,7 +452,7 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 			status = 1;
 			playbacktimer = 0;
 			playmode = 0;
-			timer2 = 600;
+			if (bankID == 5) timer2 = 1800; else timer2 = 600;
 		}
 		else
 		{
@@ -375,61 +465,65 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		}
 	}
 	//Change selection
-	if (pad->press & PDD_DGT_KD)
+	if (filechanged == 0 && pad->press & PDD_DGT_KD)
 	{
 		selection++;
 		if (selection > 10) selection = 0;
 	}
-	if (pad->press & PDD_DGT_KU)
+	if (filechanged == 0 && pad->press & PDD_DGT_KU)
 	{
 		selection--;
 		if (selection < 0) selection = 10;
 	}
-	//Switch between types of banks
-	if (pad->on & PDD_DGT_TX && selection == 0)
+	//Switch between common categories of MLT files
+	if (pad->press & PDD_DGT_TX && selection == 0)
 	{
+		//0-28 are level soundbanks
+		//29-43 are player P_ and V_ banks
+		//48-98 are cutscene E_ banks
+		//99-131 are ALIFE banks and unused ALT and CASINO stuff
 		if (!filechanged && fileID >= 0 && fileID <= 28)
 		{
 			fileID = 29;
-			filechanged = true;
+			filechanged = 30;
 		}
 		if (!filechanged && fileID >= 29 && fileID <= 47)
 		{
 			fileID = 48;
-			filechanged = true;
+			filechanged = 30;
 		}
 		if (!filechanged && fileID >= 48 && fileID <= 98)
 		{
 			fileID = 99;
-			filechanged = true;
+			filechanged = 30;
 		}
 		if (!filechanged && fileID >= 99)
 		{
 			fileID = 0;
-			filechanged = true;
+			filechanged = 30;
 		}
 	}
-	if (pad->on & PDD_DGT_TY)
+	if (pad->press & PDD_DGT_TY && selection == 0)
 	{
 		if (!filechanged && fileID >= 0 && fileID <= 28)
 		{
-			fileID = 99;
-			filechanged = true;
+			fileID = 131;
+			filechanged = 30;
 		}
 		if (!filechanged && fileID >= 29 && fileID <= 47)
 		{
-			fileID = 0;
-			filechanged = true;
+			fileID = 28;
+			filechanged = 30;
 		}
 		if (!filechanged && fileID >= 48 && fileID <= 98)
 		{
-			fileID = 29;
-			filechanged = true;
+			fileID = 43;
+			filechanged = 30;
 		}
 		if (!filechanged && fileID >= 99)
 		{
-			fileID = 48;
-			filechanged = true;
+			fileID = 98;
+			filechanged = 30;
 		}
 	}
 	//Decrease values 
@@ -440,7 +534,7 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		{
 			fileID--;
 			if (fileID > numnames) fileID = numnames;
-			filechanged = true;
+			filechanged = 30;
 		}
 		//Bank ID
 		if (selection == 1)
@@ -514,7 +608,7 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		{
 			fileID++;
 			if (fileID > numnames) fileID = 0;
-			filechanged = true;
+			filechanged = 30;
 		}
 		//Bank ID
 		if (selection == 1)
@@ -589,12 +683,16 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		if (selection == 0 && (pad->on & PDD_DGT_TL))
 		{
 			fileID = 0;
-			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
+			sdMidiStop(midi_handle);
+			sdMidiClosePort(midi_handle);
+			reload = true;
 		}
 		if (selection == 0 && (pad->on & PDD_DGT_TR))
 		{
 			fileID = numnames;
-			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
+			sdMidiStop(midi_handle);
+			sdMidiClosePort(midi_handle);
+			reload = true;
 		}
 		//Bank ID
 		if (selection == 1)
@@ -664,16 +762,36 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		}
 	}
 	//Load MLT file after releasing the buttons
-	if (filechanged == true)
+	if (filechanged > 0 && filechanged >= 2) filechanged--;
+	if (filechanged > 0 && filechanged < 2)
 	{
 		if (!(pad->press & PDD_DGT_KR || pad->on & PDD_DGT_TA) && !(pad->press & PDD_DGT_KL || pad->on & PDD_DGT_TB) && !(pad->press & PDD_DGT_KR || pad->on & PDD_DGT_TA))
 		{
-			SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
-			filechanged=false;
+			sdMidiStop(midi_handle);
+			sdMidiClosePort(midi_handle);
+			reload = true;
+			filechanged = 0;
 		}
 	}
 	framecounter++;
 	if (framecounter > 6000) framecounter = 0;
+	//Background color
+	if (!autoplay || !play) njSetBackColor(0x00000000, 0x00000000, 0x000000FF); //Normal
+	else
+	{
+		if (filesleft > 10) njSetBackColor(0x00000000, 0x00000000, 0x0000FF00); //Green
+		else if (filesleft > 5) njSetBackColor(0x00000000, 0x00000000, 0x00FFFF00); //Yellow
+		else if (filesleft > 0) njSetBackColor(0x00000000, 0x00000000, 0x00FF0000); //Red
+		else
+		{
+			njSetBackColor(0x00000000, 0x00000000, 0x00000000); //Black
+			sdMidiStop(midi_handle);
+			sdMidiClosePort(midi_handle);
+			status = 0;
+			timer2 = 0;
+			playmode = 0;
+		}
+	}
 	njPrintColor(0xCC30F030);
 	njPrintC(NJM_LOCATION(1, 5 + selection), ">");
 	njPrintColor(0xCCC0C0C0);
@@ -688,12 +806,16 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 	njPrint(NJM_LOCATION(2, 13), "PITCH   : %05d", pitch);
 	njPrint(NJM_LOCATION(2, 14), "SPEED   : %05d", speed);
 	njPrint(NJM_LOCATION(2, 15), "AUTOPLAY: %01d", autoplay);
-	if (autoplay) njPrint(NJM_LOCATION(2, 16), "TIMER   : %d", timer2);
-	njPrintC(NJM_LOCATION(2, 18), "STATUS  :");
-	njPrintC(NJM_LOCATION(2, 19), "FLAGS   :");
+	if (autoplay)
+	{
+		njPrint(NJM_LOCATION(2, 17), "TIMER   : %d", timer2);
+		njPrint(NJM_LOCATION(2, 18), "LEFT    : %d", filesleft);
+	}
+	njPrintC(NJM_LOCATION(2, 20), "STATUS  :");
+	njPrintC(NJM_LOCATION(2, 21), "FLAGS   :");
 	sdMidiGetStat(midi_handle, &stat);
 	njPrintColor(0xCCC0C0C0);
-	njPrintH(NJM_LOCATION(12, 19), stat.m_Flg, 8);
+	njPrintH(NJM_LOCATION(12, 21), stat.m_Flg, 8);
 	//Get flags and set status
 	if (play)
 	{
@@ -710,7 +832,7 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 				status = 0;
 				sdMidiStop(midi_handle);
 				sdMidiClosePort(midi_handle);
-				timer2 = 120;
+				timer2 = 240;
 				playmode = 2;
 			}
 		}
@@ -740,8 +862,8 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 					sdMidiStop(midi_handle);
 					sdMidiClosePort(midi_handle);
 					fileID++;
-					SoundInitialize("MANATEE.DRV", FilenameArray[fileID]);
-					timer2 = 60;
+					reload = true;
+					timer2 = 120;
 					playmode = 3;
 				//}
 			}
@@ -756,7 +878,7 @@ void SoundMain(const PDS_PERIPHERAL* pad)
 		{
 			njPrintColor(0xCCF03030);
 		}
-		njPrintC(NJM_LOCATION(12, 18), msg[status]);
+		njPrintC(NJM_LOCATION(12, 20), msg[status]);
 		//Playmode stuff
 		if (autoplay && playmode == 0 && timer2 <= 0) //Waiting mode
 		{
@@ -806,7 +928,6 @@ void main(void)
 
   njInitVertexBuffer( 20000, 0, 20000, 0, 0 );
   njInitPrint( NULL, 0, NJD_TEXFMT_ARGB_1555 );
-  njSetBackColor( 0x00000000, 0x00000000, 0x000000FF );
 
   SoundInitialize( "MANATEE.DRV", "CART.MLT");
 
@@ -814,17 +935,10 @@ void main(void)
 
   while ( 1 ) {
     pad = pdGetPeripheral( PDD_PORT_A0 );
+	SoundMain(pad);
 	njPrintColor(0xCCC0C0C0);
 	njPrintSize(16);
 	njPrintC(NJM_LOCATION(11, 2), "-- Sequence Test --");
-	//njPrintC(NJM_LOCATION(2, 21), "START   : Play/Stop sequence");
-	//njPrintC(NJM_LOCATION(2, 22), "PAD U/D : Move cursor");
-	//njPrintC(NJM_LOCATION(2, 23), "TRG L/R : Reset selection");
-	//njPrintC(NJM_LOCATION(2, 24), "PAD L/R : Change selection");
-	//njPrintC(NJM_LOCATION(2, 25), "BTN A/B : Change selection (hold)");
-
-    SoundMain( pad );
-
     njWaitVSync();
   }
 }
